@@ -16,9 +16,15 @@ class ChineseSpaceGame extends Phaser.Scene {
 
     preload() {
         try {
-            // Load sprites
+            // Load background with correct path
+            this.load.image('background', 'background.png');
+            console.log('Loading background from:', 'background.png'); // Debug log
+            
+            // Load other sprites
             Object.entries(ASSETS.SPRITES).forEach(([key, config]) => {
-                this.load.image(key.toLowerCase(), config.path);
+                if (key !== 'BACKGROUND') { // Skip background as it's already loaded
+                    this.load.image(key.toLowerCase(), config.path);
+                }
             });
 
             // Load audio
@@ -79,18 +85,23 @@ class ChineseSpaceGame extends Phaser.Scene {
     }
 
     createBackground() {
-    try {
-        // Create static background with reduced size
-        const bg = this.add.sprite(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2, 'background');
-        bg.setDepth(-1);
-        // Scale down the background
-        bg.setScale(0.8); // Adjust this value as needed
-        
-        // Remove the scroll effect by removing the update event
-    } catch (error) {
-        console.error('Error creating background:', error);
+        try {
+            // Debug log to check if the texture exists
+            console.log('Background texture exists:', this.textures.exists('background'));
+            
+            // Create background with simpler settings
+            const bg = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2, 'background');
+            bg.setDepth(-1);
+            
+            // Fit to screen while maintaining aspect ratio
+            bg.setDisplaySize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+            
+        } catch (error) {
+            console.error('Error creating background:', error);
+            console.error('Available textures:', this.textures.list);
+        }
     }
-}
+
     createPlayer() {
         try {
             // Create player sprite
@@ -231,14 +242,15 @@ window.onload = () => {
             width: GAME_CONFIG.WIDTH,
             height: GAME_CONFIG.HEIGHT,
             parent: 'game-container',
+            backgroundColor: '#000000',
+            scene: [PreloadScene, MainScene],
             physics: {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: GAME_CONFIG.DEBUG_MODE
+                    debug: false
                 }
-            },
-            scene: ChineseSpaceGame
+            }
         };
 
         const game = new Phaser.Game(config);
