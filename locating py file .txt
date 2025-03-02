@@ -1,0 +1,11 @@
+	•	cd /Users/sophie/Desktop/space_invader_asset 
+	•	
+	◦	ls 
+	1	
+	◦	python3 space_invader.py 
+	1	
+
+Power down sound effect
+
+https://www.youtube.com/watch?v=HeGOpMNd62I
+

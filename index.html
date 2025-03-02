@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Language Learning Game</title>
+    <!-- Phaser Library -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #000;
+        }
+        #game-container {
+            position: relative;
+        }
+        #loadingText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            z-index: 1000;
+        }
+        .game-ui {
+            position: absolute;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 10px;
+            z-index: 100;
+        }
+        #score {
+            top: 10px;
+            left: 10px;
+        }
+        #lives {
+            top: 10px;
+            right: 10px;
+        }
+        #level {
+            bottom: 10px;
+            left: 10px;
+        }
+        #timer {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loadingText">Loading...</div>
+        <div id="score" class="game-ui">Score: 0</div>
+        <div id="lives" class="game-ui">Lives: 3</div>
+        <div id="level" class="game-ui">Level: 1</div>
+        <div id="timer" class="game-ui">Time: 180</div>
+    </div>
+
+    <!-- Game Configuration and Constants -->
+    <script>
+        /* Last modified: 2025-03-02 09:42:09 UTC */
+        /* Author: sophieso827 */
+
+        // Game Configuration
+        const GAME_CONFIG = {
+            WIDTH: 800,
+            HEIGHT: 600,
+            INITIAL_LIVES: 3,
+            GAME_TIME: 180,
+            WORD_FALL_SPEED: 100,
+            PLAYER_SPEED: 300,
+            BULLET_SPEED: 400,
+            DEBUG_MODE: false,
+            DIFFICULTY_SCALING: {
+                SPEED_INCREASE: 1.2,
+                SPAWN_RATE_DECREASE: 0.9,
+                POINTS_MULTIPLIER: 1.5
+            }
+        };
+
+        // Asset Configuration - Updated with .mp3 extensions for all audio files
+        const ASSETS = {
+            SPRITES: {
+                BACKGROUND: { path: 'background.png', width: 800, height: 600, scale: 0.8 },
+                PLAYER: { path: 'player.png', width: 50, height: 30, scale: 0.5 },
+                BULLET: { path: 'bullet.png', width: 8, height: 16, scale: 1.0 },
+                HEART: { path: 'heart.png', width: 32, height: 32, scale: 0.8 },
+                EXPLOSION: { path: 'explosion.png', width: 64, height: 64, scale: 1.0 },
+                POWERUP: { path: 'powerup.png', width: 24, height: 24, scale: 1.0 }
+            },
+            AUDIO: {
+                BACKGROUND: { path: 'background.mp3', volume: 0.5, loop: true },
+                SHOOT: { path: 'shoot.mp3', volume: 0.3, loop: false },
+                EXPLODE: { path: 'explosion.mp3', volume: 0.4, loop: false },
+                SWOOSH: { path: 'swoosh.mp3', volume: 0.3, loop: false },
+                POWERUP: { path: 'powerup.mp3', volume: 0.4, loop: false },
+                GAMEOVER: { path: 'gameover.mp3', volume: 0.5, loop: false }
+            },
+            FONTS: {
+                MAIN: 'Arial',
+                CHINESE: '"Microsoft YaHei", "SimHei", sans-serif'
+            }
+        };
+
+        // Word Database Configuration
+        const WORD_CONFIG = {
+            DIFFICULTY_LEVELS: {
+                EASY: { min: 1, max: 2, points: 100 },
+                MEDIUM: { min: 3, max: 4, points: 200 },
+                HARD: { min: 5, max: 6, points: 300 }
+            },
+            SPAWN_RATES: {
+                EASY: 3000,
+                MEDIUM: 4000,
+                HARD: 5000
+            },
+            FALL_SPEEDS: {
+                EASY: 100,
+                MEDIUM: 150,
+                HARD: 200
+            }
+        };
+
+        // Power-up Configuration
+        const POWERUP_CONFIG = {
+            TYPES: {
+                SLOW_TIME: { duration: 5000, color: 0x00ff00 },
+                DOUBLE_POINTS: { duration: 10000, color: 0xffff00 },
+                EXTRA_LIFE: { color: 0xff0000 }
+            },
+            SPAWN_CHANCE: 0.1,
+            FALL_SPEED: 150
+        };
+    </script>
+
+    <!-- Game Components -->
+    <script src="audioManager.js"></script>
+    <script src="particleManager.js"></script>
+    <script src="wordRenderer.js"></script>
+    <script src="gameStateManager.js"></script>
+    <script src="powerupManager.js"></script>
+    <script src="collisionManager.js"></script>
+    <script src="uiManager.js"></script>
+    <script src="game.js"></script>
+
+    <!-- Error Handling -->
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+            return false;
+        };
+
+        // Handle asset loading errors
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT') {
+                console.error('Error loading resource:', e.target.src);
+                document.getElementById('loadingText').innerText = 'Error loading game resources. Please refresh.';
+            }
+        }, true);
+    </script>
+</body>
+</html>
