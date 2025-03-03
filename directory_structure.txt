@@ -1,0 +1,23 @@
+audioManager.js
+background.png
+background_music.mp3
+bullet.png
+collisionManager.js
+countdown.mp3
+directory_structure.txt
+explosion.mp3
+game.js
+gameStateManager.js
+heart.png
+index.html
+jf-openhuninn-2.0.ttf
+locating py file .txt
+particleManager.js
+powerupManager.js
+preloadScene.js
+shooting.mp3
+space_invader.py
+spaceship.png
+swoosh.mp3
+uiManager.js
+wordRenderer.js
