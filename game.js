@@ -1,4 +1,4 @@
-/* Last modified: 2025-02-28 13:01:01 UTC */
+/* Last modified: 2025-03-03 03:07:07 UTC */
 /* Author: sophieso827 */
 
 class ChineseSpaceGame extends Phaser.Scene {
@@ -16,15 +16,14 @@ class ChineseSpaceGame extends Phaser.Scene {
 
     preload() {
         try {
-            // Load background with correct path
-            this.load.image('background', 'background.png');
-            console.log('Loading background from:', 'background.png'); // Debug log
-            
-            // Load other sprites
+            // Load sprites
             Object.entries(ASSETS.SPRITES).forEach(([key, config]) => {
-                if (key !== 'BACKGROUND') { // Skip background as it's already loaded
-                    this.load.image(key.toLowerCase(), config.path);
-                }
+                this.load.image(key.toLowerCase(), config.path);
+                
+                // Add error handler for each sprite
+                this.load.on(`fileerror-image-${key.toLowerCase()}`, (file) => {
+                    console.error(`Error loading sprite: ${file.key}`);
+                });
             });
 
             // Load audio
@@ -44,19 +43,40 @@ class ChineseSpaceGame extends Phaser.Scene {
             // Create background
             this.createBackground();
             
-            // Create player
+            // Create player with error handling
             this.createPlayer();
             
             // Start background music
-            this.audioManager.play('BACKGROUND', { loop: true });
+            this.audioManager.play('background', { loop: true });
             
             // Hide loading text
             const loadingText = document.getElementById('loadingText');
             if (loadingText) {
                 loadingText.style.display = 'none';
             }
+
+            // Spawn initial words
+            this.spawnInitialWords();
         } catch (error) {
             console.error('Error in create:', error);
+        }
+    }
+
+    // Add this new method
+    spawnInitialWords() {
+        try {
+            // Spawn a few initial words with different positions
+            const initialPositions = [
+                { x: GAME_CONFIG.WIDTH * 0.25, y: 100 },
+                { x: GAME_CONFIG.WIDTH * 0.5, y: 150 },
+                { x: GAME_CONFIG.WIDTH * 0.75, y: 200 }
+            ];
+
+            initialPositions.forEach(pos => {
+                this.wordRenderer.spawnWordAt(pos.x, pos.y);
+            });
+        } catch (error) {
+            console.error('Error spawning initial words:', error);
         }
     }
 
@@ -86,19 +106,15 @@ class ChineseSpaceGame extends Phaser.Scene {
 
     createBackground() {
         try {
-            // Debug log to check if the texture exists
-            console.log('Background texture exists:', this.textures.exists('background'));
-            
-            // Create background with simpler settings
-            const bg = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2, 'background');
+            // Create static background with reduced size
+            const bg = this.add.sprite(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2, 'background');
             bg.setDepth(-1);
+            // Scale down the background
+            bg.setScale(0.8); // Adjust this value as needed
             
-            // Fit to screen while maintaining aspect ratio
-            bg.setDisplaySize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
-            
+            // Remove the scroll effect by removing the update event
         } catch (error) {
             console.error('Error creating background:', error);
-            console.error('Available textures:', this.textures.list);
         }
     }
 
@@ -201,7 +217,7 @@ class ChineseSpaceGame extends Phaser.Scene {
             });
             
             // Play shoot sound
-            this.audioManager.play('SHOOT');
+            this.audioManager.play('shoot');
             
             // Destroy bullet when it goes off screen
             bullet.checkWorldBounds = true;
@@ -242,15 +258,14 @@ window.onload = () => {
             width: GAME_CONFIG.WIDTH,
             height: GAME_CONFIG.HEIGHT,
             parent: 'game-container',
-            backgroundColor: '#000000',
-            scene: [PreloadScene, MainScene],
             physics: {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: false
+                    debug: GAME_CONFIG.DEBUG_MODE
                 }
-            }
+            },
+            scene: ChineseSpaceGame
         };
 
         const game = new Phaser.Game(config);

@@ -1,336 +1,184 @@
-/* Last modified: 2025-02-28 12:58:27 UTC */
+/* Last modified: 2025-03-03 03:09:25 UTC */
 /* Author: sophieso827 */
 
-class UIManager {
+class WordRenderer {
     constructor(scene) {
         this.scene = scene;
-        this.elements = new Map();
-        this.currentScreen = null;
-        this.inputEnabled = true;
-        this.isTyping = false;
-        this.currentInput = '';
+        this.words = [];
+        this.currentLevel = 1;
+        this.wordPool = new Map();
+        this.activeWords = new Set();
+        this.lastSpawnTime = 0;
+        this.spawnDelay = WORD_CONFIG.SPAWN_RATES.EASY;
     }
 
     initialize() {
         try {
-            this.createMainUI();
-            this.setupInputHandlers();
-            this.createMenuScreens();
-        } catch (error) {
-            console.error('Error initializing UIManager:', error);
-        }
-    }
-
-    createMainUI() {
-        try {
-            // Create UI container
-            const uiContainer = this.scene.add.container(0, 0);
-            uiContainer.setDepth(1000);
-
-            // Create input text box
-            this.createInputBox();
-
-            // Create hint text
-            this.createHintText();
-
-            this.elements.set('mainUI', uiContainer);
-        } catch (error) {
-            console.error('Error creating main UI:', error);
-        }
-    }
-
-    createInputBox() {
-        try {
-            const inputBox = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50);
+            // Initialize word pools for different difficulty levels
+            this.initializeWordPools();
             
-            // Background
-            const bg = this.scene.add.rectangle(0, 0, 400, 40, 0x000000, 0.7);
-            bg.setStrokeStyle(2, 0x00ff00);
-            
-            // Text input display
-            const inputText = this.scene.add.text(0, 0, '', {
-                fontSize: '24px',
-                fill: '#ffffff',
-                fontFamily: ASSETS.FONTS.MAIN
+            // Set up spawn timer
+            this.scene.time.addEvent({
+                delay: 100,
+                callback: this.update,
+                callbackScope: this,
+                loop: true
             });
-            inputText.setOrigin(0.5);
-            
-            inputBox.add([bg, inputText]);
-            this.elements.set('inputBox', inputBox);
-            this.elements.set('inputText', inputText);
         } catch (error) {
-            console.error('Error creating input box:', error);
+            console.error('Error initializing WordRenderer:', error);
         }
     }
 
-    createHintText() {
+    initializeWordPools() {
+        // Sample word pools - In a real game, these would be loaded from a database or file
+        this.wordPool.set('EASY', [
+            { chinese: '我', pinyin: 'wǒ', english: 'I/me' },
+            { chinese: '你', pinyin: 'nǐ', english: 'you' },
+            { chinese: '好', pinyin: 'hǎo', english: 'good' },
+            { chinese: '是', pinyin: 'shì', english: 'is/am/are' }
+        ]);
+
+        this.wordPool.set('MEDIUM', [
+            { chinese: '学习', pinyin: 'xué xí', english: 'study' },
+            { chinese: '工作', pinyin: 'gōng zuò', english: 'work' },
+            { chinese: '朋友', pinyin: 'péng you', english: 'friend' }
+        ]);
+
+        this.wordPool.set('HARD', [
+            { chinese: '学习中文', pinyin: 'xué xí zhōng wén', english: 'study Chinese' },
+            { chinese: '很高兴认识你', pinyin: 'hěn gāo xìng rèn shi nǐ', english: 'nice to meet you' }
+        ]);
+    }
+
+    createWordSprite(wordData, x, y) {
         try {
-            const hintText = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 90, 
-                'Type the Chinese characters or pinyin to shoot', {
+            const container = this.scene.add.container(x, y);
+            
+            // Chinese character
+            const chineseText = this.scene.add.text(0, 0, wordData.chinese, {
+                fontSize: '32px',
+                fill: '#ffffff',
+                fontFamily: ASSETS.FONTS.CHINESE
+            });
+            chineseText.setOrigin(0.5);
+
+            // Pinyin
+            const pinyinText = this.scene.add.text(0, 35, wordData.pinyin, {
                 fontSize: '16px',
                 fill: '#ffff00',
                 fontFamily: ASSETS.FONTS.MAIN
             });
-            hintText.setOrigin(0.5);
-            this.elements.set('hintText', hintText);
+            pinyinText.setOrigin(0.5);
+
+            container.add([chineseText, pinyinText]);
+            container.wordData = wordData;
+
+            // Enable physics for the word container
+            this.scene.physics.world.enable(container);
+            container.body.setVelocityY(WORD_CONFIG.FALL_SPEEDS.EASY);
+            container.body.setCollideWorldBounds(true);
+
+            return container;
         } catch (error) {
-            console.error('Error creating hint text:', error);
-        }
-    }
-
-    createMenuScreens() {
-        try {
-            // Create pause menu
-            this.createPauseMenu();
-            
-            // Create game over screen
-            this.createGameOverScreen();
-            
-            // Create help screen
-            this.createHelpScreen();
-        } catch (error) {
-            console.error('Error creating menu screens:', error);
-        }
-    }
-
-    createPauseMenu() {
-        try {
-            const pauseContainer = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2);
-            pauseContainer.setDepth(2000);
-            pauseContainer.visible = false;
-
-            // Background overlay
-            const overlay = this.scene.add.rectangle(
-                0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT,
-                0x000000, 0.7
-            );
-            overlay.setOrigin(0.5);
-
-            // Pause menu text and buttons
-            const pauseText = this.scene.add.text(0, -100, 'GAME PAUSED', {
-                fontSize: '48px',
-                fill: '#ffffff',
-                fontFamily: ASSETS.FONTS.MAIN
-            });
-            pauseText.setOrigin(0.5);
-
-            const resumeButton = this.createButton(0, 0, 'Resume Game', () => {
-                this.scene.gameState.togglePause();
-            });
-
-            const helpButton = this.createButton(0, 60, 'Help', () => {
-                this.showScreen('help');
-            });
-
-            const quitButton = this.createButton(0, 120, 'Quit to Menu', () => {
-                this.scene.scene.start('MainMenu');
-            });
-
-            pauseContainer.add([overlay, pauseText, resumeButton, helpButton, quitButton]);
-            this.elements.set('pauseMenu', pauseContainer);
-        } catch (error) {
-            console.error('Error creating pause menu:', error);
-        }
-    }
-
-    createGameOverScreen() {
-        try {
-            const gameOverContainer = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2);
-            gameOverContainer.setDepth(2000);
-            gameOverContainer.visible = false;
-
-            // Background overlay
-            const overlay = this.scene.add.rectangle(
-                0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT,
-                0x000000, 0.8
-            );
-            overlay.setOrigin(0.5);
-
-            // Game over text and stats
-            const gameOverText = this.scene.add.text(0, -150, 'GAME OVER', {
-                fontSize: '64px',
-                fill: '#ff0000',
-                fontFamily: ASSETS.FONTS.MAIN
-            });
-            gameOverText.setOrigin(0.5);
-
-            const statsText = this.scene.add.text(0, -50, '', {
-                fontSize: '24px',
-                fill: '#ffffff',
-                fontFamily: ASSETS.FONTS.MAIN,
-                align: 'center'
-            });
-            statsText.setOrigin(0.5);
-
-            const restartButton = this.createButton(0, 50, 'Play Again', () => {
-                this.scene.scene.restart();
-            });
-
-            const menuButton = this.createButton(0, 110, 'Main Menu', () => {
-                this.scene.scene.start('MainMenu');
-            });
-
-            gameOverContainer.add([overlay, gameOverText, statsText, restartButton, menuButton]);
-            this.elements.set('gameOverScreen', gameOverContainer);
-            this.elements.set('gameOverStats', statsText);
-        } catch (error) {
-            console.error('Error creating game over screen:', error);
-        }
-    }
-
-    createButton(x, y, text, callback) {
-        try {
-            const button = this.scene.add.container(x, y);
-            
-            const bg = this.scene.add.rectangle(0, 0, 200, 40, 0x333333);
-            bg.setStrokeStyle(2, 0x00ff00);
-            
-            const buttonText = this.scene.add.text(0, 0, text, {
-                fontSize: '20px',
-                fill: '#ffffff',
-                fontFamily: ASSETS.FONTS.MAIN
-            });
-            buttonText.setOrigin(0.5);
-            
-            button.add([bg, buttonText]);
-            
-            button.setInteractive(new Phaser.Geom.Rectangle(-100, -20, 200, 40), 
-                Phaser.Geom.Rectangle.Contains);
-            
-            button.on('pointerover', () => {
-                bg.setFillStyle(0x666666);
-            });
-            
-            button.on('pointerout', () => {
-                bg.setFillStyle(0x333333);
-            });
-            
-            button.on('pointerdown', callback);
-            
-            return button;
-        } catch (error) {
-            console.error('Error creating button:', error);
+            console.error('Error creating word sprite:', error);
             return null;
         }
     }
 
-    setupInputHandlers() {
+    spawnWord() {
         try {
-            this.scene.input.keyboard.on('keydown', this.handleKeydown, this);
-            this.scene.input.keyboard.on('keyup', this.handleKeyup, this);
+            const difficulty = this.getDifficultyForLevel();
+            const wordPool = this.wordPool.get(difficulty);
+            
+            if (!wordPool || wordPool.length === 0) {
+                console.warn('No words available for difficulty:', difficulty);
+                return;
+            }
+
+            const randomWord = wordPool[Math.floor(Math.random() * wordPool.length)];
+            const x = Phaser.Math.Between(50, GAME_CONFIG.WIDTH - 50);
+            const y = 0;
+            const wordSprite = this.createWordSprite(randomWord, x, y);
+
+            if (wordSprite) {
+                this.activeWords.add(wordSprite);
+            }
         } catch (error) {
-            console.error('Error setting up input handlers:', error);
+            console.error('Error spawning word:', error);
         }
     }
 
-    handleKeydown(event) {
+    spawnWordAt(x, y) {
         try {
-            if (!this.inputEnabled) return;
-
-            if (event.keyCode === Phaser.Input.Keyboard.KeyCodes.ENTER) {
-                this.submitInput();
-            } else if (event.keyCode === Phaser.Input.Keyboard.KeyCodes.BACKSPACE) {
-                this.currentInput = this.currentInput.slice(0, -1);
-            } else if (event.key.length === 1) {
-                this.currentInput += event.key;
+            const difficulty = this.getDifficultyForLevel();
+            const wordPool = this.wordPool.get(difficulty);
+            
+            if (!wordPool || wordPool.length === 0) {
+                console.warn('No words available for difficulty:', difficulty);
+                return;
             }
 
-            this.updateInputDisplay();
+            const randomWord = wordPool[Math.floor(Math.random() * wordPool.length)];
+            const wordSprite = this.createWordSprite(randomWord, x, y);
+
+            if (wordSprite) {
+                this.activeWords.add(wordSprite);
+            }
         } catch (error) {
-            console.error('Error handling keydown:', error);
+            console.error('Error spawning word at position:', error);
         }
     }
 
-    handleKeyup(event) {
-        // Handle key release events if needed
-    }
-
-    submitInput() {
-        try {
-            if (this.currentInput.length > 0) {
-                // Trigger word matching and shooting
-                this.scene.gameState.checkWordMatch(this.currentInput);
-                this.currentInput = '';
-                this.updateInputDisplay();
-            }
-        } catch (error) {
-            console.error('Error submitting input:', error);
+    getDifficultyForLevel() {
+        if (this.currentLevel <= 3) {
+            return 'EASY';
+        } else if (this.currentLevel <= 6) {
+            return 'MEDIUM';
+        } else {
+            return 'HARD';
         }
     }
 
-    updateInputDisplay() {
+    update() {
         try {
-            const inputText = this.elements.get('inputText');
-            if (inputText) {
-                inputText.setText(this.currentInput);
-            }
-        } catch (error) {
-            console.error('Error updating input display:', error);
-        }
-    }
+            const currentTime = this.scene.time.now;
 
-    showScreen(screenName) {
-        try {
-            // Hide current screen if any
-            if (this.currentScreen) {
-                this.elements.get(this.currentScreen).visible = false;
-            }
-
-            // Show requested screen
-            const screen = this.elements.get(screenName);
-            if (screen) {
-                screen.visible = true;
-                this.currentScreen = screenName;
-            }
-        } catch (error) {
-            console.error('Error showing screen:', error);
-        }
-    }
-
-    hideScreen(screenName) {
-        try {
-            const screen = this.elements.get(screenName);
-            if (screen) {
-                screen.visible = false;
-                if (this.currentScreen === screenName) {
-                    this.currentScreen = null;
-                }
-            }
-        } catch (error) {
-            console.error('Error hiding screen:', error);
-        }
-    }
-
-    updateGameOverStats(stats) {
-        try {
-            const statsText = this.elements.get('gameOverStats');
-            if (statsText) {
-                statsText.setText(
-                    `Final Score: ${stats.score}\n` +
-                    `Level Reached: ${stats.level}\n` +
-                    `Words Matched: ${stats.wordsMatched}\n` +
-                    `Accuracy: ${stats.accuracy}%`
+            if (currentTime >= this.lastSpawnTime + this.spawnDelay) {
+                this.spawnWord();
+                this.lastSpawnTime = currentTime;
+                this.spawnDelay = Math.max(
+                    WORD_CONFIG.SPAWN_RATES.HARD,
+                    this.spawnDelay * GAME_CONFIG.DIFFICULTY_SCALING.SPAWN_RATE_DECREASE
                 );
             }
+
+            this.activeWords.forEach(word => {
+                if (word.y > GAME_CONFIG.HEIGHT) {
+                    this.activeWords.delete(word);
+                    word.destroy();
+                    this.scene.gameState.decrementLives();
+                }
+            });
         } catch (error) {
-            console.error('Error updating game over stats:', error);
+            console.error('Error updating WordRenderer:', error);
+        }
+    }
+
+    destroyWord(word) {
+        try {
+            this.activeWords.delete(word);
+            word.destroy();
+        } catch (error) {
+            console.error('Error destroying word:', error);
         }
     }
 
     cleanup() {
         try {
-            this.elements.forEach(element => {
-                if (element.destroy) {
-                    element.destroy();
-                }
-            });
-            this.elements.clear();
-            this.currentScreen = null;
-            this.inputEnabled = false;
-            this.isTyping = false;
-            this.currentInput = '';
+            this.activeWords.forEach(word => word.destroy());
+            this.activeWords.clear();
         } catch (error) {
-            console.error('Error cleaning up UIManager:', error);
+            console.error('Error cleaning up WordRenderer:', error);
         }
     }
 }
